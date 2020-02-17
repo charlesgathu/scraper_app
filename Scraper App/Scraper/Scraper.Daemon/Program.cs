@@ -1,5 +1,11 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Scraper.Domain;
+using Scraper.Infrastructure;
+using Scrapper.Service;
 using System.Threading.Tasks;
 
 namespace Scraper.Daemon
@@ -14,21 +20,17 @@ namespace Scraper.Daemon
         public static IHostBuilder CreateHostBuilder(string[] args)
         {
             return Host.CreateDefaultBuilder(args)
-                .ConfigureAppConfiguration((context, config) =>
-                {
-                    //config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false);
-                    //config.AddEnvironmentVariables();
-
-                })
                 .ConfigureServices((context, services) =>
                 {
-                    //var settings = new Dictionary<string, object> {
-                    //    { "variable1", context.Configuration.GetValue<string>("myapp_variable1") },
-                    //    { "variable2", context.Configuration.GetValue<string>("myapp_variable2") },
-                    //    { "variable3", context.Configuration.GetValue<string>("myapp_variable3") }
-                    //};
-                    //services.AddSingleton(settings);
-                    services.AddHostedService<MyHostedService>();
+
+                    services.AddDbContext<ScraperContext>(options => options.UseSqlServer(context.Configuration.GetConnectionString("ScraperContext")));
+
+                    var hostSection = context.Configuration.GetSection("HostUrl");
+                    services.AddSingleton(hostSection.Value);
+                    services.AddScoped<IShowRepository, ShowRepository>();
+                    
+                    services.AddHostedService<ScrapperService>();
+
                 })
                 .ConfigureLogging((context, logging) =>
                 {
